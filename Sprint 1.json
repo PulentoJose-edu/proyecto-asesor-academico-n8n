@@ -1,0 +1,216 @@
+{
+  "name": "Sprint 1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "3413354e-37c9-4dd0-bf35-ab2431e0c197",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7bfd41ae-a021-47c3-bcbc-784484ce8c56",
+      "name": "Webhook",
+      "webhookId": "3413354e-37c9-4dd0-bf35-ab2431e0c197"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0eac5a0e-a405-438d-906a-0a993049f644",
+              "leftValue": "={{ $('MySQL_Verificar_Alumno').first().json.rut_id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3f56d60b-7b42-45c9-89dd-e62be3277ba7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM alumnos\nWHERE rut_id = '{{ $json.body.rut_id }}'\nAND carrera = '{{ $json.body.carrera }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f6d71a24-e069-44ce-975f-e6debf26e4ae",
+      "name": "MySQL_Verificar_Alumno",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "K8ScuZLKps67UK3c",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM malla_curricular\nWHERE carrera = '{{ $('Webhook').first().json.body.carrera }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "34129055-f5d3-4606-8504-e6a6bb7fbe98",
+      "name": "MySQL_Get_Malla",
+      "credentials": {
+        "mySql": {
+          "id": "K8ScuZLKps67UK3c",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Alumno no encontrado. Verifique el RUT o la carrera ingresada.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        624,
+        96
+      ],
+      "id": "7d8a4519-eb6f-462e-a373-435f52e2d1e6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. OBTENER DATOS DE ENTRADA\n// ---\n// Obtener la malla completa que consultó el nodo MySQL_Get_Malla\n// Usamos .all() para asegurar que procesamos todos los resultados\n\n// ***** ESTA ES LA LÍNEA QUE DEBES CAMBIAR *****\nconst mallaCompleta = $('MySQL_Get_Malla').all();\n\n// Obtener los datos del estudiante que envió el Webhook\nconst alumno = $('Webhook').first().json.body;\nconst aprobadas = alumno.asignaturas_aprobadas || [];\nconst enCurso = alumno.asignaturas_en_curso || [];\nconst semestreActual = alumno.semestre_actual;\n\n\n// 2. LISTAS PARA CLASIFICAR\n// ---\nlet asignaturas_disponibles = [];\nlet asignaturas_bloqueadas = [];\nlet asignaturas_criticas = [];\n\n\n// 3. PROCESAR CADA CURSO DE LA MALLA\n// (Esta lógica no necesita cambios, ya que el IF se aseguró\n// de que el alumno existe antes de llegar aquí)\n// ---\nfor (const item of mallaCompleta) {\n  const curso = item.json; // El objeto del curso (fila de la DB)\n  const codigo = curso.codigo_asignatura;\n\n  // ---\n  // A. Omitir cursos que el alumno ya aprobó o está cursando\n  // ---\n  if (aprobadas.includes(codigo) || enCurso.includes(codigo)) {\n    continue; // Saltar al siguiente curso del bucle\n  }\n\n  // ---\n  // B. Revisar si el alumno CUMPLE con los prerrequisitos\n  // ---\n  let cumplePrerrequisitos = true; // Asumimos que sí, hasta que se demuestre lo contrario\n  let faltantes = []; // Para anotar qué le falta\n\n  if (curso.prerrequisitos) {\n    // Convertir el string \"MAT-100,INF-100\" en un array [\"MAT-100\", \"INF-100\"]\n    const listaReqs = curso.prerrequisitos.split(',');\n\n    // Revisar cada requisito de la lista\n    for (const req of listaReqs) {\n      if (!aprobadas.includes(req)) {\n        // ¡El alumno NO tiene este requisito!\n        cumplePrerrequisitos = false;\n        faltantes.push(req);\n      }\n    }\n  }\n\n  // ---\n  // C. Clasificar el curso según el resultado\n  // ---\n  if (cumplePrerrequisitos) {\n    // El alumno puede tomar este curso\n    asignaturas_disponibles.push(curso);\n\n    // ADEMÁS, revisamos si es \"crítica\"\n    if (curso.semestre_recomendado == semestreActual) {\n      asignaturas_criticas.push(curso);\n    }\n    \n  } else {\n    // El alumno NO puede tomar este curso\n    // Añadimos la info de por qué está bloqueada\n    curso.prerrequisitos_faltantes = faltantes.join(','); \n    asignaturas_bloqueadas.push(curso);\n  }\n}\n\n\n// 4. DEVOLVER EL REPORTE FINAL\n// ---\n// Devolvemos un solo objeto JSON que contiene toda la información.\n// Este será el resultado que verá Postman.\nreturn [{\n  reporte: {\n    alumno: alumno.nombre,\n    semestre_objetivo: semestreActual,\n    asignaturas_disponibles: asignaturas_disponibles,\n    asignaturas_criticas: asignaturas_criticas,\n    asignaturas_bloqueadas: asignaturas_bloqueadas\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "0cc23b2a-10d8-41b7-ba1e-c881b564ec15",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "26171812-cabf-412c-87c2-726463cdd913",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MySQL_Verificar_Alumno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_Verificar_Alumno": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "MySQL_Get_Malla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_Get_Malla": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "75136cf5-9cf9-4dfe-a9c6-fb1ea0809fd7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95a180cf21d5483bf8dac3b8fdfb0894e2ec8ef66ed52c8bdc9983cca6c901b0"
+  },
+  "id": "gpk4v2dEfGf4u9bj",
+  "tags": []
+}

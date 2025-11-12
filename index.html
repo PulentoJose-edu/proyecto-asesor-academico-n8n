@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asesor Académico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        form { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px;
+        }
+
+        label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea { 
+            height: 100px;
+            resize: vertical;
+        }
+
+        button[type="submit"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            text-align: center;
+        }
+
+        #reporte { 
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            min-height: 100px;
+            color: #333;
+        }
+
+        .reporte-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .reporte-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .reporte-header p {
+            margin: 5px 0 0 0;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .seccion {
+            margin-bottom: 30px;
+        }
+
+        .seccion-titulo {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .asignatura-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .asignatura-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .asignatura-card.critica {
+            border-left-color: #ffa500;
+            background: #fff8e1;
+        }
+
+        .asignatura-card.critica:hover {
+            background: #ffecb3;
+        }
+
+        .asignatura-card.bloqueada {
+            border-left-color: #dc3545;
+            background: #ffebee;
+        }
+
+        .asignatura-card.bloqueada:hover {
+            background: #ffcdd2;
+        }
+
+        .asignatura-codigo {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .asignatura-nombre {
+            font-size: 1em;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .asignatura-detalles {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .detalle-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .detalle-label {
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-creditos {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-semestre {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-prereq {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .badge-faltante {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .mensaje-vacio {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .icono {
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        #loader { 
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            button[type="submit"] {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Asesor Académico</h1>
+        <p>Ingresa tus datos para ver qué asignaturas puedes cursar.</p>
+
+        <form id="form-asesor">
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" value="Bastián González" required>
+
+        <label for="rut_id">RUT/ID:</label>
+        <input type="text" id="rut_id" name="rut_id" value="20.123.456-K" required>
+
+        <label for="carrera">Carrera:</label>
+        <input type="text" id="carrera" name="carrera" value="Ingeniería Informática" required>
+
+        <label for="semestre_actual">Semestre actual (número):</label>
+        <input type="number" id="semestre_actual" name="semestre_actual" value="3" required>
+
+        <label for="asignaturas_aprobadas">Asignaturas Aprobadas (códigos separados por coma):</label>
+        <textarea id="asignaturas_aprobadas" name="asignaturas_aprobadas">MAT-100,INF-100,FYQ-100,CAD-100,MAT-200,MAT-201,FYQ-200</textarea>
+
+        <label for="asignaturas_en_curso">Asignaturas en Curso (separadas por coma):</label>
+        <textarea id="asignaturas_en_curso" name="asignaturas_en_curso">INF-200</textarea>
+
+            <button type="submit">Generar Recomendación</button>
+        </form>
+
+        <div id="loader">⏳ Cargando...</div>
+
+        <h2>Reporte de Recomendación</h2>
+        <div id="reporte">
+            Aquí aparecerán tus resultados...
+        </div>
+    </div>
+
+    <script>
+        // URL de tu Webhook de n8n. Asegúrate que sea la URL de *producción*, no la de prueba.
+        const WEBHOOK_URL = 'http://localhost:5678/webhook-test/3413354e-37c9-4dd0-bf35-ab2431e0c197';
+
+        const form = document.getElementById('form-asesor');
+        const reporteDiv = document.getElementById('reporte');
+        const loader = document.getElementById('loader');
+
+        form.addEventListener('submit', async (event) => {
+            // Previene que el formulario se envíe de la forma tradicional
+            event.preventDefault(); 
+            
+            reporteDiv.innerHTML = '';
+            loader.style.display = 'block';
+
+            // 1. Recolectar los datos del formulario
+            const formData = new FormData(form);
+            const data = {
+                nombre: formData.get('nombre'),
+                rut_id: formData.get('rut_id'),
+                carrera: formData.get('carrera'),
+                semestre_actual: parseInt(formData.get('semestre_actual'), 10),
+                // Convertir los strings de los textarea en arrays
+                asignaturas_aprobadas: formData.get('asignaturas_aprobadas').split(',').map(s => s.trim()),
+                asignaturas_en_curso: formData.get('asignaturas_en_curso').split(',').map(s => s.trim())
+            };
+
+            try {
+                // 2. Enviar los datos a n8n usando 'fetch'
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                // 3. Esperar la respuesta JSON del nodo "Respond to Webhook"
+                const reporte = await response.json();
+
+                // 4. Mostrar la respuesta en la página
+                loader.style.display = 'none';
+                
+                // Verificar si hay un error en la respuesta
+                if (reporte.error) {
+                    reporteDiv.innerHTML = mostrarError(reporte.error);
+                } else {
+                    // Formatear el reporte de manera visual
+                    reporteDiv.innerHTML = formatearReporte(reporte.reporte);
+                }
+
+            } catch (error) {
+                loader.style.display = 'none';
+                reporteDiv.innerHTML = `<div class="mensaje-vacio" style="color: #dc3545;">❌ Error al conectar con el asesor: ${error.message}</div>`;
+            }
+        });
+
+        function mostrarError(mensaje) {
+            return `
+                <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; padding: 30px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 3em; margin-bottom: 15px;">❌</div>
+                    <h3 style="margin: 0 0 10px 0; font-size: 1.5em;">Error</h3>
+                    <p style="margin: 0; font-size: 1.1em; color: rgba(255,255,255,0.95);">${mensaje}</p>
+                </div>
+            `;
+        }
+
+        function formatearReporte(reporte) {
+            if (!reporte) {
+                return '<div class="mensaje-vacio">No hay datos para mostrar</div>';
+            }
+
+            let html = `
+                <div class="reporte-header">
+                    <h3>📋 Reporte de ${reporte.alumno}</h3>
+                    <p>Semestre objetivo: ${reporte.semestre_objetivo}</p>
+                </div>
+            `;
+
+            // Asignaturas Disponibles
+            html += '<div class="seccion">';
+            html += '<div class="seccion-titulo">✅ Asignaturas Disponibles</div>';
+            if (reporte.asignaturas_disponibles && reporte.asignaturas_disponibles.length > 0) {
+                reporte.asignaturas_disponibles.forEach(asig => {
+                    html += `
+                        <div class="asignatura-card">
+                            <div class="asignatura-codigo">${asig.codigo_asignatura}</div>
+                            <div class="asignatura-nombre">${asig.nombre_asignatura}</div>
+                            <div class="asignatura-detalles">
+                                <span class="badge badge-creditos">📚 ${asig.creditos} créditos</span>
+                                <span class="badge badge-semestre">📅 Semestre ${asig.semestre_recomendado}</span>
+                                ${asig.prerrequisitos ? `<span class="badge badge-prereq">📌 Prereq: ${asig.prerrequisitos}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div class="mensaje-vacio">No hay asignaturas disponibles</div>';
+            }
+            html += '</div>';
+
+            // Asignaturas Críticas
+            html += '<div class="seccion">';
+            html += '<div class="seccion-titulo" style="color: #ffa500;">⚠️ Asignaturas Críticas (Alta prioridad)</div>';
+            if (reporte.asignaturas_criticas && reporte.asignaturas_criticas.length > 0) {
+                reporte.asignaturas_criticas.forEach(asig => {
+                    html += `
+                        <div class="asignatura-card critica">
+                            <div class="asignatura-codigo">${asig.codigo_asignatura}</div>
+                            <div class="asignatura-nombre">${asig.nombre_asignatura}</div>
+                            <div class="asignatura-detalles">
+                                <span class="badge badge-creditos">📚 ${asig.creditos} créditos</span>
+                                <span class="badge badge-semestre">📅 Semestre ${asig.semestre_recomendado}</span>
+                                ${asig.prerrequisitos ? `<span class="badge badge-prereq">📌 Prereq: ${asig.prerrequisitos}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div class="mensaje-vacio">No hay asignaturas críticas</div>';
+            }
+            html += '</div>';
+
+            // Asignaturas Bloqueadas
+            html += '<div class="seccion">';
+            html += '<div class="seccion-titulo" style="color: #dc3545;">🔒 Asignaturas Bloqueadas</div>';
+            if (reporte.asignaturas_bloqueadas && reporte.asignaturas_bloqueadas.length > 0) {
+                reporte.asignaturas_bloqueadas.forEach(asig => {
+                    html += `
+                        <div class="asignatura-card bloqueada">
+                            <div class="asignatura-codigo">${asig.codigo_asignatura}</div>
+                            <div class="asignatura-nombre">${asig.nombre_asignatura}</div>
+                            <div class="asignatura-detalles">
+                                <span class="badge badge-creditos">📚 ${asig.creditos} créditos</span>
+                                <span class="badge badge-semestre">📅 Semestre ${asig.semestre_recomendado}</span>
+                                ${asig.prerrequisitos_faltantes ? `<span class="badge badge-faltante">❌ Falta: ${asig.prerrequisitos_faltantes}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div class="mensaje-vacio">No hay asignaturas bloqueadas</div>';
+            }
+            html += '</div>';
+
+            return html;
+        }
+    </script>
+
+</body>
+</html>
