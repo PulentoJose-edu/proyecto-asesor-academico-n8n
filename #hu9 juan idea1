@@ -1,0 +1,121 @@
+from dataclasses import dataclass, asdict
+from typing import List, Dict, Any
+import statistics
+
+@dataclass
+class Curso:
+    codigo: str
+    nombre: str
+    creditos: int
+    tipo: str        # "Obligatorio" / "Electivo" / "Requisito"
+    estado: str      # "aprobado" / "reprobado" / "pendiente"
+    semestre: str    # "2024-1", "2024-2", etc.
+    nota: float | None = None
+
+@dataclass
+class ParametrosNegocio:
+    tope_creditos: int = 30
+    umbral_buen_promedio: float = 5.0
+    max_reprobados_bajo_riesgo: int = 1
+
+def calcular_promedio(historial: List[Curso]) -> float | None:
+    notas = [c.nota for c in historial if c.nota is not None]
+    if not notas:
+        return None
+    return round(statistics.mean(notas), 2)
+
+def contar_reprobados_ultimo_semestre(historial: List[Curso], semestre_actual: str) -> int:
+    return sum(1 for c in historial
+               if c.semestre == semestre_actual and c.estado == "reprobado")
+
+def ordenar_por_prioridad(cursos_disponibles: List[Curso]) -> List[Curso]:
+    # 1) Requisitos, 2) Obligatorios, 3) Electivos
+    prioridad_tipo = {"Requisito": 1, "Obligatorio": 2, "Electivo": 3}
+    return sorted(
+        cursos_disponibles,
+        key=lambda c: (prioridad_tipo.get(c.tipo, 99), c.codigo)
+    )
+
+def recomendar_carga(
+    rut_estudiante: str,
+    historial: List[Curso],
+    cursos_disponibles: List[Curso],
+    semestre_objetivo: str,
+    parametros: ParametrosNegocio,
+    creditos_solicitados: int | None = None
+) -> Dict[str, Any]:
+    """
+    Devuelve un dict listo para serializar a JSON con la recomendación de carga académica.
+    """
+
+    promedio = calcular_promedio(historial)
+    if promedio is None:
+        return {
+            "rut_estudiante": rut_estudiante,
+            "promedio_actual": None,
+            "tipo_carga": None,
+            "creditos_recomendados": 0,
+            "numero_ramos_recomendados": 0,
+            "lista_ramos": [],
+            "nivel_riesgo": None,
+            "mensaje_advertencia": "No es posible recomendar carga por falta de datos."
+        }
+
+    reprobados_ultimo = contar_reprobados_ultimo_semestre(historial, semestre_objetivo)
+
+    # ---------- Determinar tipo de carga ----------
+    if promedio >= parametros.umbral_buen_promedio and \
+       reprobados_ultimo <= parametros.max_reprobados_bajo_riesgo:
+        tipo_carga = "estandar"
+        nivel_riesgo = "Bajo"
+        # valores de referencia, tú puedes ajustarlos
+        min_creditos, max_creditos = 26, parametros.tope_creditos
+    else:
+        tipo_carga = "reducida"
+        nivel_riesgo = "Medio" if promedio >= 4.0 else "Alto"
+        min_creditos, max_creditos = 18, min(22, parametros.tope_creditos)
+
+    # ---------- Seleccionar ramos recomendados ----------
+    cursos_ordenados = ordenar_por_prioridad(cursos_disponibles)
+
+    creditos_acumulados = 0
+    lista_recomendada: List[Curso] = []
+
+    for curso in cursos_ordenados:
+        if creditos_acumulados + curso.creditos > parametros.tope_creditos:
+            break
+        creditos_acumulados += curso.creditos
+        lista_recomendada.append(curso)
+        if creditos_acumulados >= max_creditos:
+            break
+
+    # Si quedó muy bajo, se acepta igual (no forzamos mínimo)
+    creditos_recomendados = creditos_acumulados
+    numero_ramos_recomendados = len(lista_recomendada)
+
+    # ---------- Advertencia por sobrecarga solicitada ----------
+    mensaje_advertencia = ""
+    if creditos_solicitados is not None and creditos_solicitados > creditos_recomendados:
+        mensaje_advertencia = (
+            f"La carga solicitada ({creditos_solicitados} créditos) supera "
+            f"la recomendación calculada ({creditos_recomendados} créditos)."
+        )
+
+    return {
+        "rut_estudiante": rut_estudiante,
+        "promedio_actual": promedio,
+        "tipo_carga": tipo_carga,
+        "creditos_recomendados": creditos_recomendados,
+        "numero_ramos_recomendados": numero_ramos_recomendados,
+        "lista_ramos": [
+            {
+                "codigo": c.codigo,
+                "nombre": c.nombre,
+                "creditos": c.creditos,
+                "tipo": c.tipo
+            }
+            for c in lista_recomendada
+        ],
+        "nivel_riesgo": nivel_riesgo,
+        "mensaje_advertencia": mensaje_advertencia
+    }
