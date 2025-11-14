@@ -1,5 +1,5 @@
 WITH 
--- 1. Obtener semestre ideal del alumno
+
 datos_alumno AS (
     SELECT 
         a.id_alumno,
@@ -8,7 +8,7 @@ datos_alumno AS (
     WHERE a.id_alumno = {{ID_ALUMNO}}
 ),
 
--- 2. Asignaturas no aprobadas por el alumno
+
 asignaturas_pendientes AS (
     SELECT 
         asig.cod_asignatura,
@@ -22,7 +22,6 @@ asignaturas_pendientes AS (
        OR h.estado != 'Aprobado'
 ),
 
--- 3. Cuenta cuántas asignaturas dependen de cada asignatura (cuellos de botella)
 conteo_dependencias AS (
     SELECT 
         p.cod_prerrequisito AS cod_asignatura,
@@ -31,7 +30,6 @@ conteo_dependencias AS (
     GROUP BY p.cod_prerrequisito
 )
 
--- 4. Selección final de asignaturas críticas
 SELECT 
     ap.cod_asignatura,
     ap.nombre,
