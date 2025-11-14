@@ -1,0 +1,56 @@
+WITH 
+-- 1. Obtener semestre ideal del alumno
+datos_alumno AS (
+    SELECT 
+        a.id_alumno,
+        a.avance_semestre AS semestre_ideal
+    FROM alumnos a
+    WHERE a.id_alumno = {{ID_ALUMNO}}
+),
+
+-- 2. Asignaturas no aprobadas por el alumno
+asignaturas_pendientes AS (
+    SELECT 
+        asig.cod_asignatura,
+        asig.nombre,
+        asig.semestre
+    FROM asignaturas asig
+    LEFT JOIN historial h 
+        ON h.cod_asignatura = asig.cod_asignatura
+        AND h.id_alumno = {{ID_ALUMNO}}
+    WHERE h.estado IS NULL 
+       OR h.estado != 'Aprobado'
+),
+
+-- 3. Cuenta cuántas asignaturas dependen de cada asignatura (cuellos de botella)
+conteo_dependencias AS (
+    SELECT 
+        p.cod_prerrequisito AS cod_asignatura,
+        COUNT(*) AS dependencias
+    FROM prerrequisitos p
+    GROUP BY p.cod_prerrequisito
+)
+
+-- 4. Selección final de asignaturas críticas
+SELECT 
+    ap.cod_asignatura,
+    ap.nombre,
+    ap.semestre,
+    da.semestre_ideal,
+    COALESCE(cd.dependencias, 0) AS dependencias,
+    
+    CASE
+        WHEN ap.semestre = da.semestre_ideal THEN 'Corresponde al semestre actual'
+        WHEN ap.semestre < da.semestre_ideal THEN 'Asignatura atrasada'
+        WHEN COALESCE(cd.dependencias, 0) >= 2 THEN 'Prerrequisito de múltiples asignaturas futuras'
+        ELSE 'No crítica'
+    END AS motivo_critico
+
+FROM asignaturas_pendientes ap
+CROSS JOIN datos_alumno da
+LEFT JOIN conteo_dependencias cd 
+    ON cd.cod_asignatura = ap.cod_asignatura
+
+WHERE
+    ap.semestre <= da.semestre_ideal
+    OR COALESCE(cd.dependencias, 0) >= 2;
