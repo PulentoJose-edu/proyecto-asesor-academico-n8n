@@ -11,10 +11,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        0,
-        0
+        -624,
+        96
       ],
-      "id": "7bfd41ae-a021-47c3-bcbc-784484ce8c56",
+      "id": "691ffe6e-faa6-4f59-bb79-bfd90eae1d85",
       "name": "Webhook",
       "webhookId": "3413354e-37c9-4dd0-bf35-ab2431e0c197"
     },
@@ -46,10 +46,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        416,
-        0
+        -208,
+        96
       ],
-      "id": "3f56d60b-7b42-45c9-89dd-e62be3277ba7",
+      "id": "2f27732d-f699-4df0-81a5-a119e4f00cd6",
       "name": "If"
     },
     {
@@ -61,10 +61,10 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
       "position": [
-        208,
-        0
+        -416,
+        96
       ],
-      "id": "f6d71a24-e069-44ce-975f-e6debf26e4ae",
+      "id": "77259523-007f-49cd-88f1-b931f4c6a2a1",
       "name": "MySQL_Verificar_Alumno",
       "alwaysOutputData": true,
       "credentials": {
@@ -83,10 +83,10 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
       "position": [
-        624,
-        -96
+        0,
+        0
       ],
-      "id": "34129055-f5d3-4606-8504-e6a6bb7fbe98",
+      "id": "7a8ff5ff-0552-4e4b-ac06-4539b2b332a9",
       "name": "MySQL_Get_Malla",
       "credentials": {
         "mySql": {
@@ -104,23 +104,23 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        624,
-        96
+        0,
+        192
       ],
-      "id": "7d8a4519-eb6f-462e-a373-435f52e2d1e6",
+      "id": "7d032b0a-6ace-49e2-b0ef-142906fb3b35",
       "name": "Respond to Webhook"
     },
     {
       "parameters": {
-        "jsCode": "// 1. OBTENER DATOS DE ENTRADA\n// ---\n// Obtener la malla completa que consultó el nodo MySQL_Get_Malla\n// Usamos .all() para asegurar que procesamos todos los resultados\n\n// ***** ESTA ES LA LÍNEA QUE DEBES CAMBIAR *****\nconst mallaCompleta = $('MySQL_Get_Malla').all();\n\n// Obtener los datos del estudiante que envió el Webhook\nconst alumno = $('Webhook').first().json.body;\nconst aprobadas = alumno.asignaturas_aprobadas || [];\nconst enCurso = alumno.asignaturas_en_curso || [];\nconst semestreActual = alumno.semestre_actual;\n\n\n// 2. LISTAS PARA CLASIFICAR\n// ---\nlet asignaturas_disponibles = [];\nlet asignaturas_bloqueadas = [];\nlet asignaturas_criticas = [];\n\n\n// 3. PROCESAR CADA CURSO DE LA MALLA\n// (Esta lógica no necesita cambios, ya que el IF se aseguró\n// de que el alumno existe antes de llegar aquí)\n// ---\nfor (const item of mallaCompleta) {\n  const curso = item.json; // El objeto del curso (fila de la DB)\n  const codigo = curso.codigo_asignatura;\n\n  // ---\n  // A. Omitir cursos que el alumno ya aprobó o está cursando\n  // ---\n  if (aprobadas.includes(codigo) || enCurso.includes(codigo)) {\n    continue; // Saltar al siguiente curso del bucle\n  }\n\n  // ---\n  // B. Revisar si el alumno CUMPLE con los prerrequisitos\n  // ---\n  let cumplePrerrequisitos = true; // Asumimos que sí, hasta que se demuestre lo contrario\n  let faltantes = []; // Para anotar qué le falta\n\n  if (curso.prerrequisitos) {\n    // Convertir el string \"MAT-100,INF-100\" en un array [\"MAT-100\", \"INF-100\"]\n    const listaReqs = curso.prerrequisitos.split(',');\n\n    // Revisar cada requisito de la lista\n    for (const req of listaReqs) {\n      if (!aprobadas.includes(req)) {\n        // ¡El alumno NO tiene este requisito!\n        cumplePrerrequisitos = false;\n        faltantes.push(req);\n      }\n    }\n  }\n\n  // ---\n  // C. Clasificar el curso según el resultado\n  // ---\n  if (cumplePrerrequisitos) {\n    // El alumno puede tomar este curso\n    asignaturas_disponibles.push(curso);\n\n    // ADEMÁS, revisamos si es \"crítica\"\n    if (curso.semestre_recomendado == semestreActual) {\n      asignaturas_criticas.push(curso);\n    }\n    \n  } else {\n    // El alumno NO puede tomar este curso\n    // Añadimos la info de por qué está bloqueada\n    curso.prerrequisitos_faltantes = faltantes.join(','); \n    asignaturas_bloqueadas.push(curso);\n  }\n}\n\n\n// 4. DEVOLVER EL REPORTE FINAL\n// ---\n// Devolvemos un solo objeto JSON que contiene toda la información.\n// Este será el resultado que verá Postman.\nreturn [{\n  reporte: {\n    alumno: alumno.nombre,\n    semestre_objetivo: semestreActual,\n    asignaturas_disponibles: asignaturas_disponibles,\n    asignaturas_criticas: asignaturas_criticas,\n    asignaturas_bloqueadas: asignaturas_bloqueadas\n  }\n}];"
+        "jsCode": "// 1. OBTENER DATOS DE ENTRADA\n// ---\n// Obtener la malla completa que consultó el nodo MySQL_Get_Malla\nconst mallaCompleta = $('MySQL_Get_Malla').all();\n\n// Obtener los datos del estudiante\nconst alumno = $('Webhook').first().json.body;\nconst aprobadas = alumno.asignaturas_aprobadas || [];\nconst enCurso = alumno.asignaturas_en_curso || [];\nconst semestreActual = alumno.semestre_actual;\n\n\n// 2. LISTAS PARA CLASIFICAR\n// ---\nlet asignaturas_disponibles = [];\nlet asignaturas_bloqueadas = [];\nlet asignaturas_criticas = [];\n\n\n// 3. PROCESAR CADA CURSO DE LA MALLA\n// ---\nfor (const item of mallaCompleta) {\n  const curso = item.json; // El objeto del curso (fila de la DB)\n  const codigo = curso.codigo_asignatura;\n\n  // A. Omitir cursos ya aprobados/en curso para las listas de recomendación\n  // (Nota: No los guardamos en disponibles, pero siguen estando en mallaCompleta)\n  if (aprobadas.includes(codigo) || enCurso.includes(codigo)) {\n    continue; \n  }\n\n  // B. Revisar prerrequisitos\n  let cumplePrerrequisitos = true; \n  let faltantes = []; \n\n  if (curso.prerrequisitos) {\n    const listaReqs = curso.prerrequisitos.split(',');\n    for (const req of listaReqs) {\n      if (!aprobadas.includes(req)) {\n        cumplePrerrequisitos = false;\n        faltantes.push(req);\n      }\n    }\n  }\n\n  // C. Clasificar\n  if (cumplePrerrequisitos) {\n    asignaturas_disponibles.push(curso);\n    if (curso.semestre_recomendado == semestreActual) {\n      asignaturas_criticas.push(curso);\n    }\n  } else {\n    curso.prerrequisitos_faltantes = faltantes.join(','); \n    asignaturas_bloqueadas.push(curso);\n  }\n}\n\n\n// 4. DEVOLVER EL REPORTE FINAL\n// ---\nreturn [{\n  reporte: {\n    alumno: alumno.nombre,\n    semestre_objetivo: semestreActual,\n    \n    // Listas procesadas\n    asignaturas_disponibles: asignaturas_disponibles,\n    asignaturas_criticas: asignaturas_criticas,\n    asignaturas_bloqueadas: asignaturas_bloqueadas,\n\n    // <--- NUEVO: Agregamos la lista completa sin filtrar\n    // Usamos .map() para extraer solo los datos limpios (sin la envoltura de n8n)\n    todas_las_asignaturas: mallaCompleta.map(item => item.json) \n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        832,
-        -96
+        208,
+        0
       ],
-      "id": "0cc23b2a-10d8-41b7-ba1e-c881b564ec15",
+      "id": "4de5ee74-5332-4981-bc59-1d272f540a68",
       "name": "Code in JavaScript"
     },
     {
@@ -130,10 +130,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1040,
-        -96
+        416,
+        0
       ],
-      "id": "26171812-cabf-412c-87c2-726463cdd913",
+      "id": "de015e2c-b62f-4e22-a40d-307997a90eab",
       "name": "Respond to Webhook1"
     }
   ],
@@ -202,15 +202,14 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "75136cf5-9cf9-4dfe-a9c6-fb1ea0809fd7",
+  "versionId": "24993ca8-a4a1-4b40-a9c0-f7128d4bdb2c",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "95a180cf21d5483bf8dac3b8fdfb0894e2ec8ef66ed52c8bdc9983cca6c901b0"
   },
-  "id": "gpk4v2dEfGf4u9bj",
+  "id": "74BV31hhQQ5NlSQJ",
   "tags": []
 }
