@@ -13,7 +13,8 @@
 
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: url('fondo.webp') no-repeat center center fixed;
+            background-size: cover;
             min-height: 100vh;
             padding: 40px 20px;
         }
@@ -185,6 +186,15 @@
 
         .asignatura-card.bloqueada:hover {
             background: #ffcdd2;
+        }
+
+        .asignatura-card.todas {
+            border-left-color: #6c757d;
+            background: #f8f9fa;
+        }
+
+        .asignatura-card.todas:hover {
+            background: #e2e6ea;
         }
 
         .asignatura-codigo {
@@ -365,7 +375,12 @@
                 });
 
                 // 3. Esperar la respuesta JSON del nodo "Respond to Webhook"
-                const reporte = await response.json();
+                let reporte = await response.json();
+
+                // Si es un array (común en n8n), tomamos el primer elemento
+                if (Array.isArray(reporte)) {
+                    reporte = reporte[0];
+                }
 
                 // 4. Mostrar la respuesta en la página
                 loader.style.display = 'none';
@@ -469,6 +484,28 @@
                 });
             } else {
                 html += '<div class="mensaje-vacio">No hay asignaturas bloqueadas</div>';
+            }
+            html += '</div>';
+
+            // Todas las Asignaturas
+            html += '<div class="seccion">';
+            html += '<div class="seccion-titulo" style="color: #6c757d;">📚 Todas las Asignaturas</div>';
+            if (reporte.todas_las_asignaturas && reporte.todas_las_asignaturas.length > 0) {
+                reporte.todas_las_asignaturas.forEach(asig => {
+                    html += `
+                        <div class="asignatura-card todas">
+                            <div class="asignatura-codigo">${asig.codigo_asignatura}</div>
+                            <div class="asignatura-nombre">${asig.nombre_asignatura}</div>
+                            <div class="asignatura-detalles">
+                                <span class="badge badge-creditos">📚 ${asig.creditos} créditos</span>
+                                <span class="badge badge-semestre">📅 Semestre ${asig.semestre_recomendado}</span>
+                                ${asig.prerrequisitos ? `<span class="badge badge-prereq">📌 Prereq: ${asig.prerrequisitos}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div class="mensaje-vacio">No hay asignaturas registradas</div>';
             }
             html += '</div>';
 
