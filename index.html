@@ -417,9 +417,33 @@
             let html = `
                 <div class="reporte-header">
                     <h3>📋 Reporte de ${reporte.alumno}</h3>
+                    <p><strong>Estado:</strong> ${reporte.estado_alumno}</p>
                     <p>Semestre objetivo: ${reporte.semestre_objetivo}</p>
                 </div>
             `;
+
+            // Consejo Coordinador
+            if (reporte.consejo_coordinador) {
+                html += `
+                    <div class="seccion" style="background: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 30px;">
+                        <h4 style="color: #856404; margin: 0 0 10px 0;">⚠️ Consejo del Coordinador</h4>
+                        <p style="color: #856404; margin: 0;">${reporte.consejo_coordinador}</p>
+                    </div>
+                `;
+            }
+
+            // Sugerencia de Carga
+            if (reporte.mensaje_sugerencia_cantidad || reporte.creditos_sugeridos) {
+                html += `
+                    <div class="seccion">
+                        <div class="seccion-titulo" style="color: #28a745; border-bottom-color: #28a745;">💡 Sugerencia de Carga</div>
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; color: #1b5e20;">
+                            ${reporte.mensaje_sugerencia_cantidad ? `<p style="margin-bottom: 8px; font-weight: 600; font-size: 1.1em;">${reporte.mensaje_sugerencia_cantidad}</p>` : ''}
+                            ${reporte.creditos_sugeridos ? `<p style="margin: 0;">Total Créditos Sugeridos: <span class="badge badge-creditos" style="font-size: 1em;">${reporte.creditos_sugeridos}</span></p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
 
             // Asignaturas Disponibles
             html += '<div class="seccion">';
