@@ -8,7 +8,6 @@ datos_alumno AS (
     WHERE a.id_alumno = {{ID_ALUMNO}}
 ),
 
-
 asignaturas_pendientes AS (
     SELECT 
         asig.cod_asignatura,
@@ -35,14 +34,31 @@ SELECT
     ap.nombre,
     ap.semestre,
     da.semestre_ideal,
-    COALESCE(cd.dependencias, 0) AS dependencias,
+    
+  
+    COALESCE(cd.dependencias, 0) AS dependencias_calc,
     
     CASE
-        WHEN ap.semestre = da.semestre_ideal THEN 'Corresponde al semestre actual'
-        WHEN ap.semestre < da.semestre_ideal THEN 'Asignatura atrasada'
-        WHEN COALESCE(cd.dependencias, 0) >= 2 THEN 'Prerrequisito de múltiples asignaturas futuras'
+        WHEN ap.semestre < da.semestre_ideal 
+             AND COALESCE(cd.dependencias, 0) >= 2 
+            THEN 'Atrasada y prerrequisito de múltiples asignaturas'
+        WHEN ap.semestre = da.semestre_ideal 
+            THEN 'Corresponde al semestre actual'
+        WHEN ap.semestre < da.semestre_ideal 
+            THEN 'Asignatura atrasada'
+        WHEN COALESCE(cd.dependencias, 0) >= 2 
+            THEN 'Prerrequisito de múltiples asignaturas futuras'
         ELSE 'No crítica'
-    END AS motivo_critico
+    END AS motivo_critico,
+
+    CASE
+        WHEN ap.semestre < da.semestre_ideal 
+             AND COALESCE(cd.dependencias, 0) >= 2 THEN 'alta'
+        WHEN ap.semestre < da.semestre_ideal THEN 'media'
+        WHEN ap.semestre = da.semestre_ideal THEN 'media'
+        WHEN COALESCE(cd.dependencias, 0) >= 2 THEN 'baja'
+        ELSE 'ninguna'
+    END AS nivel_criticidad
 
 FROM asignaturas_pendientes ap
 CROSS JOIN datos_alumno da
@@ -50,5 +66,5 @@ LEFT JOIN conteo_dependencias cd
     ON cd.cod_asignatura = ap.cod_asignatura
 
 WHERE
-    ap.semestre <= da.semestre_ideal
-    OR COALESCE(cd.dependencias, 0) >= 2;
+    nivel_criticidad <> 'ninguna';
+
