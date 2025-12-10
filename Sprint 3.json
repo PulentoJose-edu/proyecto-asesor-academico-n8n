@@ -1,0 +1,423 @@
+{
+  "name": "Sprint 3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "3413354e-37c9-4dd0-bf35-ab2431e0c197",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        160
+      ],
+      "id": "2388ebee-6422-4aad-a748-508b6d390a04",
+      "name": "Webhook",
+      "webhookId": "3413354e-37c9-4dd0-bf35-ab2431e0c197"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0eac5a0e-a405-438d-906a-0a993049f644",
+              "leftValue": "={{ $('MySQL_Verificar_Alumno').first().json.rut_id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        160
+      ],
+      "id": "97e62bd5-6659-446c-8570-e34ccaa235aa",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM alumnos\nWHERE rut_id = '{{ $json.body.rut_id }}'\nAND carrera = '{{ $json.body.carrera }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -464,
+        160
+      ],
+      "id": "b75cbf39-d383-4415-a5a9-798e51f994af",
+      "name": "MySQL_Verificar_Alumno",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "K8ScuZLKps67UK3c",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM malla_curricular\nWHERE carrera = '{{ $('Webhook').first().json.body.carrera }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -48,
+        64
+      ],
+      "id": "5b2b0e73-7f74-4831-ad90-a0bceb8cdaac",
+      "name": "MySQL_Get_Malla",
+      "credentials": {
+        "mySql": {
+          "id": "K8ScuZLKps67UK3c",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Alumno no encontrado. Verifique el RUT o la carrera ingresada.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -48,
+        256
+      ],
+      "id": "109a46cf-166b-46ed-b8c8-2816bab3cf74",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        368,
+        -64
+      ],
+      "id": "9764fcb9-72f6-4180-a394-01874f51f338",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtenemos el reporte del nodo de lógica anterior\nconst reporte = $('Code').first().json.reporte; \n\n// Helpers para generar filas de la tabla HTML\nconst crearFila = (asig) => `\n  <tr>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ddd;\">${asig.codigo_asignatura}</td>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ddd;\"><b>${asig.nombre_asignatura}</b></td>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ddd;\">${asig.semestre_recomendado}</td>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ddd;\">${asig.creditos}</td>\n  </tr>`;\n\nconst crearFilaBloqueada = (asig) => `\n  <tr>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ffebee; color: #c62828;\">${asig.codigo_asignatura}</td>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ffebee; color: #c62828;\">${asig.nombre_asignatura}</td>\n    <td style=\"padding: 8px; border-bottom: 1px solid #ffebee; color: #c62828;\">Falta: <b>${asig.prerrequisitos_faltantes}</b></td>\n  </tr>`;\n\n// --- CORRECCIÓN AQUÍ ---\n// Antes buscábamos \"lista_ramos_sugeridos_prioritarios\". \n// Ahora usamos \"asignaturas_criticas\", que contiene la sugerencia inteligente.\nconst htmlSugeridos = (reporte.asignaturas_criticas || []).map(crearFila).join('');\nconst htmlBloqueados = (reporte.asignaturas_bloqueadas || []).map(crearFilaBloqueada).join('');\n\n// Lógica de Alerta para el Coordinador\nlet alertaHtml = '';\nif (reporte.consejo_coordinador) {\n    alertaHtml = `\n    <div style=\"background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #ffeeba;\">\n        <strong>⚠️ ATENCIÓN REQUERIDA:</strong><br>\n        ${reporte.consejo_coordinador}\n    </div>`;\n}\n\n// ARMADO DEL HTML FINAL\nconst htmlFinal = `\n<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }\n  h1 { color: #002b5e; } \n  h2 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; margin-top: 30px;}\n  table { width: 100%; border-collapse: collapse; margin-top: 10px; }\n  th { text-align: left; background-color: #f4f4f4; padding: 10px; }\n  .resumen { background-color: #f8f9fa; padding: 15px; border-radius: 5px; }\n</style>\n</head>\n<body>\n  <div style=\"text-align: right; color: #777;\">Fecha: ${new Date().toLocaleDateString()}</div>\n  \n  <h1>Reporte de Recomendación Académica</h1>\n  \n  <div class=\"resumen\">\n    <p><strong>Estudiante:</strong> ${reporte.alumno}</p>\n    <p><strong>Semestre Objetivo:</strong> ${reporte.semestre_objetivo}</p>\n    <p><strong>Estado:</strong> <span style=\"color: ${reporte.estado_alumno.includes('Riesgo') ? 'red' : 'green'}; font-weight: bold;\">${reporte.estado_alumno}</span></p>\n    <p><strong>Carga Sugerida:</strong> ${reporte.cantidad_ramos_sugeridos} asignaturas (${reporte.creditos_sugeridos} créditos).</p>\n  </div>\n\n  ${alertaHtml}\n\n  <h2>1. Asignaturas Sugeridas (Prioridad Alta)</h2>\n  <p>${reporte.mensaje_sugerencia_cantidad}</p>\n  <table>\n    <thead><tr><th>Código</th><th>Asignatura</th><th>Sem</th><th>Créditos</th></tr></thead>\n    <tbody>${htmlSugeridos.length > 0 ? htmlSugeridos : '<tr><td colspan=\"4\">No hay asignaturas sugeridas por el momento.</td></tr>'}</tbody>\n  </table>\n\n  <h2>2. Asignaturas Bloqueadas (Atención)</h2>\n  <p>No puedes tomar estos ramos por falta de prerrequisitos:</p>\n  <table>\n    <thead><tr><th>Código</th><th>Asignatura</th><th>Motivo</th></tr></thead>\n    <tbody>${htmlBloqueados.length > 0 ? htmlBloqueados : '<tr><td colspan=\"3\">¡Felicitaciones! No tienes bloqueos.</td></tr>'}</tbody>\n  </table>\n\n  <div style=\"margin-top: 50px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px;\">\n    Generado automáticamente por Agente Académico.<br>\n    Facultad de Ingeniería.\n  </div>\n</body>\n</html>\n`;\n\n// Devolvemos el HTML y un nombre de archivo sugerido\nreturn [{ json: { html: htmlFinal, nombre_archivo: `Reporte_${reporte.alumno.replace(/ /g,'_')}.pdf` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        160
+      ],
+      "id": "fa22d489-6557-47bb-a2e8-59fe5bd58a6c",
+      "name": "Generar_HTML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://v2.convertapi.com/convert/any/to/pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 7o3VonnGAJ5unHv4Csse4jdsxt0iADPj"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "File",
+              "value": "={{ $('Generar_HTML').first().json.html }}"
+            },
+            {
+              "name": "StoreFile",
+              "value": "true"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "File",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        192
+      ],
+      "id": "7e59300d-7c9a-4945-aeee-c5a0c096d396",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "fromEmail": "countappcorreos@gmail.com",
+        "toEmail": "={{ $('Webhook').first().json.body.email }}",
+        "subject": "Resultado Académico",
+        "emailFormat": "text",
+        "text": "Adjunto encontrarás tu reporte de recomendación para el próximo semestre.",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1264,
+        64
+      ],
+      "id": "a01d2dc7-3134-4d80-a274-86460f9fd174",
+      "name": "Send email",
+      "webhookId": "59728cc3-fc9a-4e75-a498-defe18f9f0c3",
+      "credentials": {
+        "smtp": {
+          "id": "NnV5TEL7h93sRMOz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. CONFIGURACIÓN\n// ---\nconst MAX_CREDITOS_SUGERIDOS = 40; \n\n// 2. OBTENER DATOS DE ENTRADA\n// ---\nconst mallaCompleta = $('MySQL_Get_Malla').all();\nconst alumno = $('Webhook').first().json.body;\n\nconst aprobadas = alumno.asignaturas_aprobadas || [];\nconst enCurso = alumno.asignaturas_en_curso || [];\nconst semestreActual = alumno.semestre_actual;\n\n\n// 3. LISTAS PARA CLASIFICAR\n// ---\nlet asignaturas_disponibles = [];\nlet asignaturas_bloqueadas = [];\n// Nota: Ya no necesitamos la variable intermedia 'asignaturas_criticas' aquí,\n// porque la generaremos con el algoritmo inteligente más abajo.\n\n\n// 4. PROCESAR CADA CURSO DE LA MALLA\n// ---\nfor (const item of mallaCompleta) {\n  const curso = item.json; \n  const codigo = curso.codigo_asignatura;\n\n  if (aprobadas.includes(codigo) || enCurso.includes(codigo)) {\n    continue; \n  }\n\n  let cumplePrerrequisitos = true; \n  let faltantes = []; \n\n  if (curso.prerrequisitos) {\n    const listaReqs = curso.prerrequisitos.split(',');\n    for (const req of listaReqs) {\n      if (!aprobadas.includes(req)) {\n        cumplePrerrequisitos = false;\n        faltantes.push(req);\n      }\n    }\n  }\n\n  if (cumplePrerrequisitos) {\n    asignaturas_disponibles.push(curso);\n    // Eliminamos la clasificación antigua de \"críticas\" aquí\n  } else {\n    curso.prerrequisitos_faltantes = faltantes.join(','); \n    asignaturas_bloqueadas.push(curso);\n  }\n}\n\n\n// 5. LÓGICA INTELIGENTE (Ahora define las \"Asignaturas Críticas\")\n// ---\nasignaturas_disponibles.sort((a, b) => a.semestre_recomendado - b.semestre_recomendado);\n\nlet creditos_acumulados = 0;\nlet ramos_inteligentes = []; // Esta será tu nueva lista \"Crítica\"\nlet detalle_cantidad = {\n    atrasados: 0,\n    del_nivel: 0,\n    adelantados: 0\n};\n\nfor (const curso of asignaturas_disponibles) {\n    const creditosCurso = parseInt(curso.creditos || 0); \n    const semCurso = parseInt(curso.semestre_recomendado);\n\n    if (creditos_acumulados + creditosCurso <= MAX_CREDITOS_SUGERIDOS) {\n        ramos_inteligentes.push(curso);\n        creditos_acumulados += creditosCurso;\n\n        if (semCurso < semestreActual) detalle_cantidad.atrasados++;\n        else if (semCurso == semestreActual) detalle_cantidad.del_nivel++;\n        else detalle_cantidad.adelantados++;\n    }\n}\n\nlet mensaje_cantidad = `Se sugiere inscribir ${ramos_inteligentes.length} asignaturas.`;\nif (detalle_cantidad.atrasados > 0) {\n    mensaje_cantidad += ` (Prioridad: ${detalle_cantidad.atrasados} pendientes de semestres anteriores).`;\n} else if (detalle_cantidad.del_nivel > 0 && detalle_cantidad.adelantados === 0) {\n    mensaje_cantidad += ` (Carga estándar de tu semestre).`;\n}\n\n\n// 6. DETERMINAR ESTADO Y CONSEJO\n// ---\nlet estado_alumno = \"Al día\"; \nlet consejo_coordinador = null; \n\nconst bloqueosCriticos = asignaturas_bloqueadas.filter(curso => \n    curso.semestre_recomendado <= semestreActual\n);\n\nif (bloqueosCriticos.length > 0) {\n    estado_alumno = \"Atrasado (Riesgo Académico)\";\n    const nombresBloqueados = bloqueosCriticos.map(c => c.nombre_asignatura).join(\", \");\n    consejo_coordinador = `⚠️ ATENCIÓN: Tienes asignaturas de tu nivel (${nombresBloqueados}) bloqueadas por prerrequisitos. Te sugerimos contactar a tu Coordinador Académico.`;\n}\n\n\n// 7. DEVOLVER EL REPORTE FINAL\n// ---\nreturn [{\n  reporte: {\n    alumno: alumno.nombre,\n    semestre_objetivo: semestreActual,\n    estado_alumno: estado_alumno,\n    consejo_coordinador: consejo_coordinador,\n    \n    mensaje_sugerencia_cantidad: mensaje_cantidad,\n    cantidad_ramos_sugeridos: ramos_inteligentes.length,\n    desglose_sugerencia: detalle_cantidad,\n    creditos_sugeridos: creditos_acumulados,\n    \n    // --- CAMBIO AQUÍ: Reemplazo de listas ---\n    // Usamos la lista inteligente como la lista \"Crítica\" oficial\n    asignaturas_criticas: ramos_inteligentes, \n    \n    // Mantenemos disponibles (todo lo que PODRÍA tomar)\n    asignaturas_disponibles: asignaturas_disponibles, \n    \n    // Mantenemos bloqueadas\n    asignaturas_bloqueadas: asignaturas_bloqueadas,\n    // ---------------------------------------\n    \n    todas_las_asignaturas: mallaCompleta.map(item => item.json) \n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        64
+      ],
+      "id": "dd213069-c0ae-4161-884a-a83076636d12",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "=html",
+        "options": {
+          "fileName": "reporte.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        192
+      ],
+      "id": "f0f05fa0-98d2-4aaa-a5f7-605e2ad526c3",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.Files[0].Url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1056,
+        192
+      ],
+      "id": "177beff3-0573-46a4-9dc3-fbf3b3d2e1bd",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "fromEmail": "countappcorreos@gmail.com",
+        "toEmail": "josepc.gb@gmail.com",
+        "subject": "=[COPIA] Reporte Académico - {{ $('Code').first().json.reporte.alumno }}",
+        "emailFormat": "text",
+        "text": "=Estimado Coordinador,\n\nSe ha generado una recomendación automática para el alumno {{ $('Code').first().json.reporte.alumno }}.\n\nEstado: {{ $('Code').first().json.reporte.estado_alumno }}\n\n{{ $('Code').first().json.reporte.consejo_coordinador ? \"ALERTA: El alumno requiere revisión de prerrequisitos.\" : \"\" }}\n\nSe adjunta el reporte.",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1264,
+        256
+      ],
+      "id": "08eefdc0-b0fe-42f9-a10d-17f576bea0bf",
+      "name": "Send email1",
+      "webhookId": "59728cc3-fc9a-4e75-a498-defe18f9f0c3",
+      "credentials": {
+        "smtp": {
+          "id": "NnV5TEL7h93sRMOz",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MySQL_Verificar_Alumno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_Verificar_Alumno": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "MySQL_Get_Malla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_Get_Malla": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar_HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generar_HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d28b3db7-3d21-4b93-a5ae-f5fc2d8fc0d1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95a180cf21d5483bf8dac3b8fdfb0894e2ec8ef66ed52c8bdc9983cca6c901b0"
+  },
+  "id": "4KhLYmKCdwLXrmUA",
+  "tags": []
+}
