@@ -244,26 +244,6 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.Files[0].Url }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1056,
-        192
-      ],
-      "id": "177beff3-0573-46a4-9dc3-fbf3b3d2e1bd",
-      "name": "HTTP Request1"
-    },
-    {
-      "parameters": {
         "fromEmail": "countappcorreos@gmail.com",
         "toEmail": "josepc.gb@gmail.com",
         "subject": "=[COPIA] Reporte Académico - {{ $('Code').first().json.reporte.alumno }}",
@@ -288,6 +268,26 @@
           "name": "SMTP account"
         }
       }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.Files[0].Url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1056,
+        192
+      ],
+      "id": "177beff3-0573-46a4-9dc3-fbf3b3d2e1bd",
+      "name": "Descarga"
     }
   ],
   "pinData": {},
@@ -358,7 +358,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request1",
+            "node": "Descarga",
             "type": "main",
             "index": 0
           }
@@ -392,7 +392,7 @@
         ]
       ]
     },
-    "HTTP Request1": {
+    "Descarga": {
       "main": [
         [
           {
@@ -409,11 +409,11 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "d28b3db7-3d21-4b93-a5ae-f5fc2d8fc0d1",
+  "versionId": "51761fab-81d7-4f25-8861-a317ebbf948f",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "95a180cf21d5483bf8dac3b8fdfb0894e2ec8ef66ed52c8bdc9983cca6c901b0"
