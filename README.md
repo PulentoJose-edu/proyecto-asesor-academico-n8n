@@ -110,3 +110,180 @@ Para verificar el funcionamiento, utiliza estos datos en el formulario:
 ├── index.html              # Cliente Web (Frontend)
 └── README.md               # Documentación del proyecto
 ```
+
+---
+
+## Guía de Despliegue en Servidor (Linux/Docker)
+
+## Guía paso a paso para desplegar todo (Frontend, Backend y BD) en el servidor.
+
+📋 Fase 0: Preparativos (Desde tu Casa)
+Si estás en tu casa, primero conéctate a la VPN usando el cliente FortiClient con los datos que te entregaron (Gateway: 200.27.73.13). Si estás en la universidad, salta este paso.
+
+📡 Fase 1: Conexión al Servidor
+Abre tu terminal (PowerShell, CMD, Terminal o Putty) y conéctate por SSH:
+
+```bash
+ssh alumno@10.40.5.6
+```
+Password: `Unab.2025` (Nota: Al escribir la contraseña en Linux no aparecerán asteriscos. Tú solo escríbela y presiona Enter).
+
+🐳 Fase 2: Instalación de Docker
+Una vez dentro del servidor, instalaremos Docker. Copia y pega estos comandos uno por uno:
+
+Actualizar el sistema:
+```bash
+sudo apt update
+```
+
+Instalar Docker y Docker Compose:
+```bash
+sudo apt install -y docker.io docker-compose-v2
+```
+
+Dar permisos a tu usuario (para no usar sudo siempre):
+```bash
+sudo usermod -aG docker $USER
+```
+
+Aplicar cambios:
+Cierra la conexión escribiendo `exit`.
+Vuelve a conectarte (`ssh alumno@10.40.5.6`) para que los permisos hagan efecto.
+
+📂 Fase 3: Crear la Carpeta del Proyecto
+Vamos a crear una carpeta ordenada para tu proyecto.
+
+```bash
+mkdir agente-academico
+cd agente-academico
+```
+
+📄 Fase 4: Crear el Archivo "Maestro" (Docker Compose)
+Este archivo reemplazará a tu .bat. Le dirá al servidor cómo levantar MySQL, n8n y tu Web al mismo tiempo.
+
+Crea el archivo:
+```bash
+nano docker-compose.yml
+```
+
+Pega el siguiente contenido dentro (clic derecho para pegar en la mayoría de terminales):
+
+```yaml
+version: '3.8'
+
+services:
+  # 1. Base de Datos
+  mysql-db:
+    image: mysql:8
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: mi_clave_secreta
+      MYSQL_DATABASE: syacapp
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Esto carga tu script SQL automáticamente al inicio:
+      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    networks:
+      - n8n-net
+
+  # 2. Backend (n8n)
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_CORS_ALLOWED_ORIGINS=*
+      - N8N_CORS_ALLOW_CREDENTIALS=true
+      - WEBHOOK_URL=http://10.40.5.6:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n-net
+    depends_on:
+      - mysql-db
+
+  # 3. Frontend (Servidor Web para tu HTML)
+  website:
+    image: nginx:alpine
+    container_name: website
+    ports:
+      - "80:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+    networks:
+      - n8n-net
+
+volumes:
+  n8n_data:
+  mysql_data:
+
+networks:
+  n8n-net:
+```
+Guarda y sal: Presiona `Ctrl + O` (Enter) y luego `Ctrl + X`.
+
+💾 Fase 5: Subir tus Archivos (SQL y HTML)
+Ahora crearemos los archivos `setup.sql` e `index.html` en el servidor.
+
+A. Crear setup.sql
+En el servidor ejecuta: `nano setup.sql`
+
+Pega el contenido de tu script SQL (el que tenía los CREATE TABLE y INSERT).
+Tip: Asegúrate de incluir el TRUNCATE y el INSERT de datos.
+Guarda (Ctrl+O, Enter) y sal (Ctrl+X).
+
+B. Crear index.html (Con IP Actualizada)
+⚠️ Importante: Antes de pegar el código, debes editar tu `index.html` en tu bloc de notas local.
+
+Busca la línea `const WEBHOOK_URL = ...`
+
+Cámbiala por la IP del servidor:
+```javascript
+const WEBHOOK_URL = 'http://10.40.5.6:5678/webhook/TU-ID-AQUI';
+```
+(Nota: Como es una instalación nueva de n8n, el ID del webhook cambiará. Puedes poner `http://10.40.5.6:5678/webhook/temp` por ahora y corregirlo en el Paso 7).
+
+En el servidor ejecuta: `nano index.html`
+Pega tu código HTML corregido.
+Guarda (Ctrl+O, Enter) y sal (Ctrl+X).
+
+🚀 Fase 6: ¡Levantar Todo!
+Ahora que tienes los 3 archivos (`docker-compose.yml`, `setup.sql`, `index.html`) en la carpeta, ejecuta la magia:
+
+```bash
+docker compose up -d
+```
+Docker descargará las imágenes y levantará:
+- MySQL (y ejecutará tu `setup.sql` automáticamente).
+- n8n en el puerto 5678.
+- Tu Web en el puerto 80.
+
+⚙️ Fase 7: Configuración Final en n8n
+1. Abre tu navegador y entra a: `http://10.40.5.6:5678`
+2. Configura tu cuenta de n8n inicial.
+3. Importa tu Workflow:
+   - Usa el botón "Import from File" y carga tu archivo .json (el que tenías en tu computador).
+4. Configura las Credenciales:
+   - Entra a los nodos MySQL.
+   - Host: `mysql-db` (Igual que antes).
+   - Pass: `mi_clave_secreta`.
+5. Obtener la URL Real del Webhook:
+   - Abre el nodo Webhook.
+   - Copia la Production URL.
+   - Esta URL es la que debes poner en tu `index.html`.
+
+🔧 Ajuste Final (Si cambió la URL del Webhook):
+Si la URL cambió (que es lo normal), tienes que editar el `index.html` en el servidor una vez más:
+`nano index.html`
+Borra la URL vieja y pega la nueva que te dio n8n.
+Guarda y sal.
+
+Refresca el navegador (F5) en `http://10.40.5.6`.
+
+✅ ¡Resultado Final!
+- Tu Web: Accesible en `http://10.40.5.6`
+- Tu n8n: Accesible en `http://10.40.5.6:5678`
+- Tu BD: Corriendo internamente.
+
+¡Listo! Ya tienes tu solución desplegada.
