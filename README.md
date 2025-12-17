@@ -115,7 +115,7 @@ Para verificar el funcionamiento, utiliza estos datos en el formulario:
 
 ## Guía de Despliegue en Servidor (Linux/Docker)
 
-## Guía paso a paso para desplegar todo (Frontend, Backend y BD) en el servidor.
+### Guía paso a paso para desplegar todo (Frontend, Backend y BD) en el servidor.
 
 📋 Fase 0: Preparativos (Desde tu Casa)
 Si estás en tu casa, primero conéctate a la VPN usando el cliente FortiClient con los datos que te entregaron (Gateway: 200.27.73.13). Si estás en la universidad, salta este paso.
