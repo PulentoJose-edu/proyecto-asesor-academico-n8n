@@ -100,13 +100,163 @@ Para verificar el funcionamiento, utiliza estos datos en el formulario:
 | **Alumno al Día** | `19.876.543-2` | Aprobó todo | **Disponible:** Toda la carga de Semestre 3. |
 | **Error** | `1.1.1.1-1` | No existe | **Error:** "Alumno no encontrado". |
 
-## 📂 Estructura del Proyecto
+## Guía paso a paso para desplegar todo (Frontend, Backend y BD) en el servidor
 
-```plaintext
-/
-├── iniciar_entorno.bat     # (NUEVO) Script de inicio automatizado
-├── setup.sql               # (NUEVO) Script de creación de Base de Datos
-├── workflow.json           # Flujo de lógica exportado de n8n
-├── index.html              # Cliente Web (Frontend)
-└── README.md               # Documentación del proyecto
+---
+
+### 📋 Fase 0: Preparativos (Desde tu Casa)
+Si estás en tu casa, primero conéctate a la VPN usando el cliente **FortiClient** con los datos que te entregaron (Gateway: 200.27.73.13). Si estás en la universidad, salta este paso.
+
+### 📡 Fase 1: Conexión al Servidor
+Abre tu terminal (PowerShell, CMD, Terminal o Putty) y conéctate por SSH:
+```bash
+ssh alumno@10.40.5.6
+# Password: Unab.2025
+# (Nota: Al escribir la contraseña en Linux no aparecerán asteriscos. Tú solo escríbela y presiona Enter).
 ```
+
+### 🐳 Fase 2: Instalación de Docker
+Una vez dentro del servidor, instalaremos Docker. Copia y pega estos comandos uno por uno:
+
+Actualizar el sistema:
+```bash
+sudo apt update
+```
+Instalar Docker y Docker Compose:
+```bash
+sudo apt install -y docker.io docker-compose-v2
+```
+Dar permisos a tu usuario (para no usar sudo siempre):
+```bash
+sudo usermod -aG docker $USER
+```
+Aplicar cambios (sal de la sesión y entra de nuevo):
+```bash
+exit
+# Vuelve a conectarte:
+ssh alumno@10.40.5.6
+```
+
+### 📂 Fase 3: Crear la Carpeta del Proyecto
+```bash
+mkdir agente-academico
+cd agente-academico
+```
+
+### 📄 Fase 4: Crear el Archivo Maestro (docker-compose.yml)
+Crea el archivo:
+```bash
+nano docker-compose.yml
+```
+Copia y pega este contenido:
+```yaml
+version: '3.8'
+
+services:
+  # 1. Base de Datos
+  mysql-db:
+    image: mysql:8
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: mi_clave_secreta
+      MYSQL_DATABASE: syacapp
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Esto carga tu script SQL automáticamente al inicio:
+      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    networks:
+      - n8n-net
+
+  # 2. Backend (n8n)
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_CORS_ALLOWED_ORIGINS=*
+      - N8N_CORS_ALLOW_CREDENTIALS=true
+      - WEBHOOK_URL=http://10.40.5.6:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n-net
+    depends_on:
+      - mysql-db
+
+  # 3. Frontend (Servidor Web para tu HTML)
+  website:
+    image: nginx:alpine
+    container_name: website
+    ports:
+      - "80:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+    networks:
+      - n8n-net
+
+volumes:
+  n8n_data:
+  mysql_data:
+
+networks:
+  n8n-net:
+```
+Guarda y sal (Ctrl+O, Enter y luego Ctrl+X).
+
+### 💾 Fase 5: Subir tus Archivos (SQL y HTML)
+Ahora crearemos los archivos `setup.sql` e `index.html` en el servidor.
+
+A. Crear `setup.sql`
+```bash
+nano setup.sql
+```
+(Pega el contenido de tu script SQL con `CREATE TABLE`, `TRUNCATE`, `INSERT`).
+
+Guarda (Ctrl+O, Enter) y sal (Ctrl+X).
+
+B. Crear `index.html` (con la IP actualizada)
+
+- Abre tu archivo `index.html` local, busca la línea:
+  ```js
+  const WEBHOOK_URL = ...
+  ```
+- Cámbiala por:
+  ```js
+  const WEBHOOK_URL = 'http://10.40.5.6:5678/webhook/TU-ID-AQUI';
+  // O temporalmente:
+  const WEBHOOK_URL = 'http://10.40.5.6:5678/webhook/temp';
+  ```
+- Súbelo al servidor y crea el archivo:
+```bash
+nano index.html
+```
+(Pega el código corregido y guarda).
+
+### 🚀 Fase 6: Levantar Todo
+```bash
+docker compose up -d
+```
+Docker descargará las imágenes y levantará:
+- MySQL (y ejecutará tu `setup.sql`)
+- n8n en el puerto 5678
+- Tu Web en el puerto 80
+
+### ⚙️ Fase 7: Configuración Final en n8n
+1. Entra a [http://10.40.5.6:5678](http://10.40.5.6:5678)
+2. Configura tu cuenta de n8n inicial.
+3. Importa tu Workflow (`.json`)
+4. Configura las Credenciales del nodo MySQL:
+   - Host: `mysql-db`
+   - Pass: `mi_clave_secreta`
+5. Abre el nodo Webhook y copia la Production URL.
+6. Edita el `index.html` en el servidor con la nueva URL (-- `nano index.html` -- guarda y sal).
+7. Refresca [http://10.40.5.6](http://10.40.5.6).
+
+---
+## ✅ ¡Resultado Final!
+- **Tu Web:** http://10.40.5.6
+- **n8n:** http://10.40.5.6:5678
+- **BD:** Corriendo internamente
+
+¡Listo! Ya tienes la solución desplegada.
